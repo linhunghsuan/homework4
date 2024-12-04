@@ -2,9 +2,7 @@ from pycaret.classification import *
 import pandas as pd
 
 # 讀取數據
-data = pd.read_excel('/content/drive/MyDrive/Colab Notebooks/titanic.xlsx', sheet_name='Sheet1')
-
-
+# data = pd.read_excel('/content/drive/MyDrive/Colab Notebooks/titanic.xlsx', sheet_name='Sheet1')
 # 讀取數據
 data = pd.read_excel('titanic.xlsx', sheet_name='Sheet1')
 
