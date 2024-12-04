@@ -1,23 +1,33 @@
-import pandas as pd
 from pycaret.classification import *
+import pandas as pd
 
 # 讀取數據
 data = pd.read_excel('/content/drive/MyDrive/Colab Notebooks/titanic.xlsx', sheet_name='Sheet1')
 
-# 初始化 PyCaret 環境
-# 'Survived' 是目標變量，其他的則是特徵
-try:
-    clf = setup(data, target='Survived', session_id=42, 
-                categorical_features=['Sex', 'Embarked'], 
-                numeric_features=['Age', 'Fare', 'SibSp', 'Parch', 'Pclass'])
-except Exception as e:
-    print(f"Error occurred: {e}")
 
-# 比較所有可用的模型
-best_model = compare_models()
+# 讀取數據
+data = pd.read_excel('titanic.xlsx', sheet_name='Sheet1')
 
-# 創建和訓練最好的模型
-model = create_model('cnn') 
+# 刪除不需要的欄位
+data = data.drop(['Name', 'Ticket', 'Cabin', 'PassengerId', 'Body', 'Home.dest'], axis=1)
+
+# 填補缺失值
+data['Age'].fillna(data['Age'].median(), inplace=True)
+data['Fare'].fillna(data['Fare'].median(), inplace=True)
+data['Embarked'].fillna(data['Embarked'].mode()[0], inplace=True)
+
+# 選擇必要的特徵
+features = ['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare', 'Embarked']
+data = data[features + ['Survived']]  # 只保留必要的欄位
+
+# 使用 PyCaret setup 進行數據預處理
+clf = setup(data, target='Survived', session_id=42,
+            categorical_features=['Sex', 'Embarked'], 
+            numeric_features=['Age', 'Fare', 'SibSp', 'Parch', 'Pclass'])
+
+# 創建模型
+model = create_model('svm')
+
 
 # 在測試數據集上進行預測
 predictions = predict_model(model)
