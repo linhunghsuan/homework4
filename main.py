@@ -2,9 +2,7 @@ from pycaret.classification import *
 import pandas as pd
 
 # 讀取數據
-# data = pd.read_excel('/content/drive/MyDrive/Colab Notebooks/titanic.xlsx', sheet_name='Sheet1')
-# 讀取數據
-data = pd.read_excel('titanic.xlsx', sheet_name='Sheet1')
+data = pd.read_excel('/content/drive/MyDrive/Colab Notebooks/titanic.xlsx', sheet_name='Sheet1')
 
 # 刪除不需要的欄位
 data = data.drop(['Name', 'Ticket', 'Cabin', 'PassengerId', 'Body', 'Home.dest'], axis=1)
@@ -34,12 +32,12 @@ predictions = predict_model(model)
 evaluate_model(model)
 
 # 假設測試集為 test_data
-test_data = pd.read_excel('titanic_test.xlsx', sheet_name='Sheet1')
+test_data = pd.read_excel('/content/drive/MyDrive/Colab Notebooks/titanic.xlsx', sheet_name='Sheet1')
 
 # 預測
 test_predictions = predict_model(model, data=test_data)
 
 # 準備提交文件
-submission = test_predictions[['PassengerId', 'Label']]  # 'Label' 是預測的目標變量
+submission = test_predictions[['PassengerId', 'Age']]  # 'Label' 是預測的目標變量
 submission.rename(columns={'Label': 'Survived'}, inplace=True)
 submission.to_csv('submission.csv', index=False)
