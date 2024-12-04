@@ -17,7 +17,7 @@ except Exception as e:
 best_model = compare_models()
 
 # 創建和訓練最好的模型
-model = create_model('knn')  # 'rf' 是隨機森林(Random Forest)模型的縮寫
+model = create_model('cnn') 
 
 # 在測試數據集上進行預測
 predictions = predict_model(model)
