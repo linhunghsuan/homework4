@@ -1,43 +1,76 @@
-from pycaret.classification import *
+import numpy as np
 import pandas as pd
+from pycaret.classification import *
+from sklearn.model_selection import train_test_split
 
-# 讀取數據
-data = pd.read_excel('/content/drive/MyDrive/Colab Notebooks/titanic.xlsx', sheet_name='Sheet1')
+# 1. 數據讀取與處理
+data_train = pd.read_csv('/content/drive/MyDrive/Colab Notebooks/Titanic-Dataset.csv')
+data_test = pd.read_csv('/content/drive/MyDrive/Colab Notebooks/Titanic-Dataset.csv')
 
-# 刪除不需要的欄位
-data = data.drop(['Name', 'Ticket', 'Cabin', 'PassengerId', 'Body', 'Home.dest'], axis=1)
+# 數據處理函數
+def simplify_ages(df):
+    df.Age = df.Age.fillna(-0.5)
+    bins = (-1, 0, 5, 12, 18, 25, 35, 60, 120)
+    group_names = ['Unknown', 'Baby', 'Child', 'Teenager', 'Student', 'Young Adult', 'Adult', 'Senior']
+    categories = pd.cut(df.Age, bins, labels=group_names)
+    df.Age = categories
+    return df
 
-# 填補缺失值
-data['Age'].fillna(data['Age'].median(), inplace=True)
-data['Fare'].fillna(data['Fare'].median(), inplace=True)
-data['Embarked'].fillna(data['Embarked'].mode()[0], inplace=True)
+def simplify_cabins(df):
+    df.Cabin = df.Cabin.fillna('N')
+    df.Cabin = df.Cabin.apply(lambda x: x[0])
+    return df
 
-# 選擇必要的特徵
-features = ['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare', 'Embarked']
-data = data[features + ['Survived']]  # 只保留必要的欄位
+def simplify_fares(df):
+    df.Fare = df.Fare.fillna(-0.5)
+    bins = (-1, 0, 8, 15, 31, 1000)
+    group_names = ['Unknown', '1_quartile', '2_quartile', '3_quartile', '4_quartile']
+    categories = pd.cut(df.Fare, bins, labels=group_names)
+    df.Fare = categories
+    return df
 
-# 使用 PyCaret setup 進行數據預處理
-clf = setup(data, target='Survived', session_id=42,
-            categorical_features=['Sex', 'Embarked'], 
-            numeric_features=['Age', 'Fare', 'SibSp', 'Parch', 'Pclass'])
+def format_name(df):
+    df['Lname'] = df.Name.apply(lambda x: x.split(' ')[0])
+    df['NamePrefix'] = df.Name.apply(lambda x: x.split(' ')[1])
+    return df    
 
-# 創建模型
-model = create_model('svm')
+def drop_features(df):
+    return df.drop(['Ticket', 'Name', 'Embarked'], axis=1)
 
+def transform_features(df):
+    df = simplify_ages(df)
+    df = simplify_cabins(df)
+    df = simplify_fares(df)
+    df = format_name(df)
+    df = drop_features(df)
+    return df
 
-# 在測試數據集上進行預測
-predictions = predict_model(model)
+# 處理訓練與測試數據
+data_train = transform_features(data_train)
+data_test = transform_features(data_test)
 
-# 評估模型
-evaluate_model(model)
+# 2. 切分訓練數據和測試數據
+train_data, test_data = train_test_split(data_train.drop(['PassengerId'], axis=1), random_state=100, train_size=0.8)
 
-# 假設測試集為 test_data
-test_data = pd.read_excel('/content/drive/MyDrive/Colab Notebooks/titanic.xlsx', sheet_name='Sheet1')
+# 3. 設置 PyCaret 環境
+clf1 = setup(data = train_data, 
+             target = 'Survived', 
+             categorical_features = ['Pclass', 'Sex', 'Age', 'Fare', 'Cabin', 'Lname', 'NamePrefix'])
 
-# 預測
-test_predictions = predict_model(model, data=test_data)
+# 4. 創建不同模型
+ridge = create_model('ridge')  # Ridge 回歸
+lda = create_model('lda')      # LDA 線性判別分析
+gbc = create_model('gbc')      # GBC 梯度提升樹
 
-# 準備提交文件
-submission = test_predictions[['PassengerId', 'Age']]  # 'Label' 是預測的目標變量
-submission.rename(columns={'Label': 'Survived'}, inplace=True)
-submission.to_csv('submission.csv', index=False)
+# 5. 堆疊模型
+stacker = stack_models(estimator_list = [ridge, lda, gbc], meta_model = create_model('lr'))  # 使用邏輯回歸作為元模型
+
+# 6. 儲存最佳模型
+save_model(stacker, 'stacker_auc')
+
+# 7. 預測測試數據
+pred = predict_model(stacker, data = test_data)
+
+# 顯示結果
+pred.head()
+
